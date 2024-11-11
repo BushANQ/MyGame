@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>飞机大战</title>
+	<style>
+		body {
+			margin: 0;
+			padding: 0;
+			font-family: 微软雅黑;
+		}
+	</style>
+</head>
+
+<body>
+	<script src="js/pixi.js"></script>
+	<script>
+		var app = new PIXI.Application({
+			width: 640,
+			height: 800,
+			backgroundColor: 0x1099bb
+		});
+		document.body.appendChild(app.view);
+
+		var stage = new PIXI.Container();
+
+		app.stage.addChild(stage);
+
+		var planeLeft = false,
+			planeRight = false;
+
+		var bulletlist = [],
+			enemylist = [],
+			poweruplist = [],
+			bossBulletList = []; //添加Boss的子弹数组
+
+		//计时器
+		var timer = setInterval(function() {
+			//敌机动画
+			for (var i = 0; i < enemylist.length; i++) {
+				enemylist[i].y += enemylist[i].speed;
+				if (enemylist[i].y > app.view.height) {
+					stage.removeChild(enemylist[i]);
+					enemylist.splice(i, 1);
+				} else if (isKiss(enemylist[i], plane)) { // 判断是否撞击玩家飞机
+					clearInterval(timer); // 停止计时器
+					alert("游戏结束，得分：" + score); //弹出得分窗口
+					break;
+				}
+				for (var j = 0; j < bulletlist.length; j++) {
+					if (isKiss(enemylist[i], bulletlist[j])) {
+						enemylist[i].hp -= 20; //子弹伤害为20
+						if (enemylist[i].hp <= 0) {
+							score++;
+							stage.removeChild(enemylist[i]);
+							enemylist.splice(i, 1);
+
+							//生成随机道具
+							var powerupRnd = Math.floor(Math.random() * powerupTypes.length);
+							var powerup = new PIXI.Sprite.fromImage(powerupTypes[powerupRnd]);
+							powerup.anchor.set(0.5);
+							powerup.x = enemylist[i].x;
+							powerup.y = enemylist[i].y;
+							powerup.type = powerupTypes[powerupRnd]; //记录道具类型
+							poweruplist.push(powerup);
+							stage.addChild(powerup);
+						}
+						stage.removeChild(bulletlist[j]);
+						bulletlist.splice(j, 1);
+						break;
+					}
+				}
+			}
+
+			//道具动画
+			powerupTime++;
+			if (powerupTime > 100) {
+				//随机生成道具
+				var powerupRnd = Math.floor(Math.random() * powerupTypes.length);
+				var powerup = new PIXI.Sprite.fromImage(powerupTypes[powerupRnd]);
+				powerup.anchor.set(0.5);
+				powerup.x = Math.random() * app.view.width;
+				powerup.y = -powerup.height / 2;
+				powerup.type = powerupTypes[powerupRnd]; //记录道具类型
+				poweruplist.push(powerup);
+				stage.addChild(powerup);
+				powerupTime = 0;
+			}
+
+			for (var i = 0; i < poweruplist.length; i++) {
+				poweruplist[i].y += 3;
+				if (isKiss(poweruplist[i], plane)) { //判断是否获得道具
+					switch (poweruplist[i].type) {
+						case 'img/daojv05.png':
+							bulletType = 'img/bullet_02.png'; //切换为强力子弹
+							break;
+						case 'img/daojv09.png':
+							bulletType = 'img/bullet_03.png'; //切换为多弹头子弹
+							break;
+						case 'img/daojv07.png':
+							playerSpeed = 8; //加速
+							break;
+					}
+					stage.removeChild(poweruplist[i]);
+					poweruplist.splice(i, 1);
+				} else if (poweruplist[i].y > app.view.height) {
+					stage.removeChild(poweruplist[i]);
+					poweruplist.splice(i, 1);
+					}
+					}
+		//玩家飞机动画
+		if (planeLeft) {
+			plane.x -= playerSpeed;
+		} else if (planeRight) {
+			plane.x += playerSpeed;
+		}
+		if (plane.x < 0) {
+			plane.x = 0;
+		} else if (plane.x > app.view.width) {
+			plane.x = app.view.width;
+		}
+
+		//玩家子弹动画
+		for (var i = 0; i < bulletlist.length; i++) {
+			bulletlist[i].y -= bulletSpeed;
+			if (bulletlist[i].y < 0) {
+				stage.removeChild(bulletlist[i]);
+				bulletlist.splice(i, 1);
+			}
+		}
+
+		//生成敌机
+		enemyTime++;
+		if (enemyTime > 50) {
+			var enemy = new PIXI.Sprite.fromImage('img/enemy_01.png');
+			enemy.anchor.set(0.5);
+			enemy.x = Math.random() * app.view.width;
+			enemy.y = -enemy.height / 2;
+			enemy.speed = 3 + Math.random() * 2;
+			enemy.hp = 100;
+			stage.addChild(enemy);
+			enemylist.push(enemy);
+			enemyTime = 0;
+		}
+
+		//Boss动画（添加）
+		if (score > 20 && boss.hp > 0) { //当分数超过20且Boss未被击败时，生成Boss
+			bossTime++;
+			if (bossTime > 200) {
+				boss = new PIXI.Sprite.fromImage("img/boss.png");
+				boss.anchor.set(0.5);
+				boss.x = app.view.width / 2;
+				boss.y = -boss.height / 2;
+				boss.hp = 1000;
+				stage.addChild(boss);
+				bossTime = 0;
+			}
+		}
+
+		//Boss子弹动画（添加）
+		for (var i = 0; i < bossBulletList.length; i++) {
+			bossBulletList[i].y += bulletSpeed;
+			if (isKiss(bossBulletList[i], plane)) { //判断是否撞击玩家飞机
+				clearInterval(timer); // 停止计时器
+				alert("游戏结束，得分：" + score); //弹出得分窗口
+				break;
+			} else if (bossBulletList[i].y > app.view.height) {
+				stage.removeChild(bossBulletList[i]);
+				bossBulletList.splice(i, 1);
+			}
+		}
+
+		//Boss攻击（添加）
+		if (score > 20 && boss.hp > 0) { //当分数超过20且Boss未被击败时，Boss进行攻击
+			bossAttackTime++;
+			if (bossAttackTime > 60) {
+				var bullet1 = new PIXI.Sprite.fromImage('img/bullet_01.png');
+				var bullet2 = new PIXI.Sprite.fromImage('img/bullet_01.png');
+				var bullet3 = new PIXI.Sprite.fromImage('img/bullet_01.png');
+				bullet1.anchor.set(0.5);
+				bullet2.anchor.set(0.5);
+				bullet3.anchor.set(0.5);
+				bullet1.x = boss.x - boss.width / 4;
+				bullet1.y = boss.y + boss.height / 2;
+				bullet2.x = boss.x;
+				bullet2.y = boss.y + boss.height / 2;
+				bullet3.x = boss.x + boss.width / 4;
+				bullet3.y = boss.y + boss.height / 2;
+				stage.addChild(bullet1);
+				stage.addChild(bullet2);
+				stage.addChild(bullet3);
+				bossBulletList.push(bullet1);
+				bossBulletList.push(bullet2);
+				bossBulletList.push(bullet3);
+				bossAttackTime = 0;
+			}
+		}
+
+		app.renderer.render(app.stage); //渲染画面
+	}, 16);
+
+	var plane = new PIXI.Sprite.fromImage('img/plane.png');
+	plane.anchor.set(0.5);
+	plane.x = app.view.width / 2;
+	plane.y = app.view.height - plane.height / 2 - 10;
+	stage.addChild(plane);
+
+	//添加Boss对象（添加）
+	var boss = new PIXI.Sprite();
+	boss.hp = 0;
+		//设置玩家飞机移动
+		window.addEventListener('keydown', function(e) {
+			switch (e.keyCode) {
+				case 37:
+					planeLeft = true;
+					break;
+				case 39:
+					planeRight = true;
+					break;
+				case 32:
+					var bullet = new PIXI.Sprite.fromImage(bulletType);
+					bullet.anchor.set(0.5);
+					bullet.x = plane.x;
+					bullet.y = plane.y - plane.height / 2 - 10;
+					stage.addChild(bullet);
+					bulletlist.push(bullet);
+					break;
+			}
+		});
+	
+		window.addEventListener('keyup', function(e) {
+			switch (e.keyCode) {
+				case 37:
+					planeLeft = false;
+					break;
+				case 39:
+					planeRight = false;
+					break;
+			}
+		});
+	
+		function isKiss(obj1, obj2) {
+			var dx = obj1.x - obj2.x;
+			var dy = obj1.y - obj2.y;
+			var dis = Math.sqrt(dx * dx + dy * dy);
+			if (dis < obj1.width / 2 + obj2.width / 2) {
+				return true;
+			} else {
+				return false;
+			}
+		}
+	
+		//道具类型数组
+		var powerupTypes = [
+			'img/daojv05.png',
+			'img/daojv07.png',
+			'img/daojv09.png'
+		];
+	
+		//子弹类型和速度
+		var bulletType = 'img/bullet_01.png';
+		var bulletSpeed = 8;
+	
+		//玩家飞机速度
+		var playerSpeed = 6;
+	
+		//敌机生成间隔
+		var enemyTime = 0;
+	
+		//道具生成间隔和持续时间
+		var powerupTime = 0;
+	
+		//Boss生成间隔
+		var bossTime = 0;
+	
+		//Boss攻击间隔（添加）
+		var bossAttackTime = 0;
+	
+		//分数
+		var score = 0;
+	</script>
+</body>
+</html>
+

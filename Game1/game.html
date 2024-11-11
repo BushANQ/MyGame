@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>飞机大战游戏</title>
+		<script src="js/pixi.js"></script>
+	</head>
+	<body>
+		<script>
+			var app = new PIXI.Application({
+				width: 400,
+				height: 600
+			})
+			document.body.append(app.view)
+			app.view.style.display = "block"
+			app.view.style.margin = "auto"
+			var stage = app.stage;
+			var bg = new PIXI.Sprite.fromImage("img/bg_02.jpg");
+			stage.addChild(bg);
+
+			var bulletlist = [] //玩家子弹
+			var bulletTime = 0;
+
+			var enemylist = [] //敌人飞机
+			//载入敌人素材
+			var enemyResources = []
+			for (var i = 1; i < 5; i++) {
+				enemyResources.push("img/enemy_0" + i + ".png")
+			}
+			var enemyTime = 0;
+			app.ticker.add(function() {
+				bg.y += 1;
+				if (bg.y > 0) {
+					bg.y = -bg.height / 2
+				}
+				bulletTime++;
+				if (bulletTime > 50) {
+					//子弹
+					var bullet = new PIXI.Sprite.fromImage('img/bullet_01.png')
+					bullet.anchor.set(0.5)
+					console.log(bullet)
+					bullet.position.set(plane.x, plane.y - 50)
+					bulletlist.push(bullet)
+					stage.addChild(bullet)
+					bulletTime = 0
+
+				}
+
+				//子弹动画
+				for (var i = 0; i < bulletlist.length; i++) {
+					bulletlist[i].y -= 5
+					//移除打出屏幕的子弹
+					if (bulletlist[i].y < 0) {
+
+						stage.removeChild(bulletlist[i])
+						bulletlist.splice(i, 1)
+					}
+				}
+
+
+				//敌人飞机
+				enemyTime++;
+
+				if (enemyTime > 40) {
+					//随机敌人
+					var enemyRnd = Math.floor(Math.random() * enemyResources.length);
+					var enemy = new PIXI.Sprite.fromImage(enemyResources[enemyRnd]);
+					enemy.anchor.set(0.5)
+					enemy.x = Math.random() * app.view.width;
+					stage.addChildAt(enemy, 1);
+					enemylist.push(enemy);
+					enemyTime = 0
+				}
+				//敌人动画,刘金玉编程
+				for (var i = 0; i < enemylist.length; i++) {
+					enemylist[i].y += 5;
+					if (enemylist[i].y > app.view.height) {
+						stage.removeChild(enemylist[i]);
+						enemylist.splice(i, 1)
+					}
+					
+					if(enemylist.length==0) break;
+					
+					//检测是否和子弹碰撞
+					for(var j=0;j<bulletlist.length;j++)
+					{
+						if(isKiss(enemylist[i],bulletlist[j]))
+						{
+							score++;
+							stage.removeChild(enemylist[i])
+							enemylist.splice(i,1);
+							stage.removeChild(bulletlist[j])
+							bulletlist.splice(j,1)
+							break;
+						}
+					}
+					
+				}
+				
+				//刷新得分
+				scoreDisplay.text="得分"+score
+				
+
+			})
+
+			var plane = new PIXI.Sprite.fromImage("img/plane_blue_01.png")
+			stage.addChild(plane)
+			plane.anchor.set(0.5)
+			plane.position.set(app.view.width / 2, app.view.height - app.view.height / 3)
+			//绑定鼠标移动事件
+			plane.interactive = true;
+			plane.on("mousemove", function(event) {
+				var pos = event.data.getLocalPosition(app.stage)
+				if (pos.x > 0 && pos.x < app.view.width)
+					plane.position = pos;
+			})
+
+			//得分初始化
+			var scoreDisplay = new PIXI.Text("得分0");
+			var score=0;
+			scoreDisplay.style.fill = "white"
+			scoreDisplay.position.set(10)
+			stage.addChild(scoreDisplay)
+			
+			
+			//碰撞模型
+			function isKiss(A,B){
+				var happen=false;
+				if((A.x-B.x)*(A.x-B.x)+(A.y-B.y)*(A.y-B.y)<(A.width+B.width-80)*(A.width+B.width-80)){
+					happen=true;
+				}
+				return happen;
+			}
+			
+			
+		</script>
+	</body>
+</html>
